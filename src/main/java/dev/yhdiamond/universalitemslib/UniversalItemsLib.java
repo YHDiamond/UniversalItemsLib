@@ -1,25 +1,20 @@
-package dev.yhdiamond.rpmagic;
+package dev.yhdiamond.universalitemslib;
 
-import com.google.gson.JsonObject;
-import org.bukkit.Material;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.java.JavaPlugin;
-import org.reflections.Configuration;
 import org.reflections.Reflections;
 import org.reflections.scanners.ResourcesScanner;
 import org.reflections.scanners.SubTypesScanner;
 import org.reflections.util.ClasspathHelper;
 import org.reflections.util.ConfigurationBuilder;
-import org.reflections.util.FilterBuilder;
 
 import java.lang.reflect.Field;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
-import java.util.stream.Collectors;
 
-public final class RPMagic {
+public final class UniversalItemsLib {
 
     public static Set<ItemStack> getAllItemStacksInPluginItemManagers(JavaPlugin plugin) {
         Set<ItemStack> output = new HashSet<>();
