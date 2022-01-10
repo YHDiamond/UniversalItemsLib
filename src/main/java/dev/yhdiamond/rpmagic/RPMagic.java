@@ -4,32 +4,28 @@ import com.google.gson.JsonObject;
 import org.bukkit.Material;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.java.JavaPlugin;
+import org.reflections.Configuration;
 import org.reflections.Reflections;
+import org.reflections.scanners.ResourcesScanner;
+import org.reflections.scanners.SubTypesScanner;
+import org.reflections.util.ClasspathHelper;
+import org.reflections.util.ConfigurationBuilder;
+import org.reflections.util.FilterBuilder;
 
 import java.lang.reflect.Field;
 import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
 public final class RPMagic {
 
-    public static void start(JavaPlugin plugin) throws IllegalAccessException {
-        Set<ItemStack> itemStacks = getAllItemStacks(plugin).stream().filter(e -> e.getItemMeta().hasCustomModelData()).collect(Collectors.toSet());
-        JsonObject jsonObject = new JsonObject();
-        itemStacks.stream().forEach(itemStack -> {
-            JsonObject newObj = new JsonObject();
-            Material material = itemStack.getType();
-            newObj.addProperty("material", material.name());
-            String type = null;
-            if (material.isBlock()) type = "block";
-            if (material.isItem()) type = "item";
-        });
-    }
-
-    public static Set<ItemStack> getAllItemStacks(JavaPlugin plugin) {
+    public static Set<ItemStack> getAllItemStacksInPluginItemManagers(JavaPlugin plugin) {
         Set<ItemStack> output = new HashSet<>();
         Reflections reflections = new Reflections(plugin.getClass().getPackage().toString().replaceFirst("package ", ""));
         Set<Class<?>> classes = reflections.getTypesAnnotatedWith(ItemManager.class);
+
         for (Class clazz : classes) {
             Field[] fields = clazz.getFields();
             for (Field field : fields) {
@@ -48,5 +44,50 @@ public final class RPMagic {
         }
         return output;
     }
+
+    public static Set<ItemStack> getAllItemStacksInClass(Class clazz) {
+        Set<ItemStack> output = new HashSet<>();
+        Field[] fields = clazz.getFields();
+        for (Field field : fields) {
+            Class fieldClass = field.getDeclaringClass();
+            if (!(fieldClass.isAssignableFrom(ItemStack.class) || fieldClass.equals(ItemStack.class))) {
+                ItemStack itemStack;
+                try {
+                    itemStack = (ItemStack) field.get(ItemStack.class);
+                    if (itemStack == null) continue;
+                } catch (Exception e) {
+                    continue;
+                }
+                output.add(itemStack);
+            }
+        }
+        return output;
+    }
+
+    public static Set<ItemStack> getAllItemStacksInPlugin(JavaPlugin plugin, boolean requireItemManagerAnnotation) {
+        Set<ItemStack> output = new HashSet<>();
+        List<ClassLoader> classLoadersList = new LinkedList<ClassLoader>();
+        classLoadersList.add(ClasspathHelper.contextClassLoader());
+        classLoadersList.add(ClasspathHelper.staticClassLoader());
+
+        Reflections reflections = new Reflections(new ConfigurationBuilder()
+                .setScanners(new SubTypesScanner(false), new ResourcesScanner())
+                .setUrls(ClasspathHelper.forClassLoader(classLoadersList.toArray(new ClassLoader[0]))));
+        Set<Class<?>> classes = requireItemManagerAnnotation ? reflections.getTypesAnnotatedWith(ItemManager.class) : reflections.getSubTypesOf(Object.class);
+        for (Class clazz : classes) {
+            try {
+                if (clazz.getPackage().toString().startsWith(plugin.getClass().getPackage().toString())) {
+                    output.addAll(getAllItemStacksInClass(clazz));
+                }
+            } catch (Throwable e) { continue; }
+        }
+        System.out.println("Done outputting all classes!");
+        return output;
+    }
+
+    public static Set<ItemStack> getAllItemStacksInPlugin(JavaPlugin plugin) {
+        return getAllItemStacksInPlugin(plugin, false);
+    }
+
 
 }
