@@ -10,7 +10,7 @@ jobs:
       packages: write
     env:
       REPO_NAME: ${{ github.event.repository.name }} 
-      GITHUB_TOKEN: ${{ secrets.TOKEN }}
+      GITHUB_TOKEN: ${{ secrets.RELEASES_KEY }}
     steps:
     - uses: actions/checkout@v2
     - name: Set up JDK 17
