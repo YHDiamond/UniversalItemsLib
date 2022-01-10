@@ -59,6 +59,24 @@ public final class UniversalItemsLib {
         return output;
     }
 
+    public static Set<ItemStack> getAllItemStacks(boolean requireItemManagerAnnotation) {
+        Set<ItemStack> output = new HashSet<>();
+        List<ClassLoader> classLoadersList = new LinkedList<ClassLoader>();
+        classLoadersList.add(ClasspathHelper.contextClassLoader());
+        classLoadersList.add(ClasspathHelper.staticClassLoader());
+
+        Reflections reflections = new Reflections(new ConfigurationBuilder()
+                .setScanners(new SubTypesScanner(false), new ResourcesScanner())
+                .setUrls(ClasspathHelper.forClassLoader(classLoadersList.toArray(new ClassLoader[0]))));
+        Set<Class<?>> classes = requireItemManagerAnnotation ? reflections.getTypesAnnotatedWith(ItemManager.class) : reflections.getSubTypesOf(Object.class);
+        for (Class clazz : classes) {
+            try {
+                output.addAll(getAllItemStacksInClass(clazz));
+            } catch (Throwable e) { continue; }
+        }
+        return output;
+    }
+
     public static Set<ItemStack> getAllItemStacksInPlugin(JavaPlugin plugin, boolean requireItemManagerAnnotation) {
         Set<ItemStack> output = new HashSet<>();
         List<ClassLoader> classLoadersList = new LinkedList<ClassLoader>();
@@ -76,13 +94,11 @@ public final class UniversalItemsLib {
                 }
             } catch (Throwable e) { continue; }
         }
-        System.out.println("Done outputting all classes!");
         return output;
     }
 
     public static Set<ItemStack> getAllItemStacksInPlugin(JavaPlugin plugin) {
         return getAllItemStacksInPlugin(plugin, false);
     }
-
 
 }
